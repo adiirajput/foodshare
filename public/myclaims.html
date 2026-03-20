@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Claims — FoodShare</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🌿 Food<span>Share</span></a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/browse">Browse Food</a></li>
+      <li><a href="/donor">Donate Food</a></li>
+      <li><a href="/myclaims" class="active">My Claims</a></li>
+      <li><a href="/history">History</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner container">
+    <h1>📋 My Claims</h1>
+    <p>Track all the food you've claimed</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:2rem;padding-bottom:4rem;">
+
+  <!-- Name entry -->
+  <div id="nameSection">
+    <div class="name-entry">
+      <div class="ne-icon">📋</div>
+      <h2>View Your Claims</h2>
+      <p>Enter your name to see all food you've claimed</p>
+      <div class="form-group">
+        <input type="text" id="ni" class="form-control" placeholder="Your name"/>
+      </div>
+      <button onclick="setName()" class="btn btn-lime" style="width:100%">View My Claims →</button>
+    </div>
+  </div>
+
+  <!-- Claims panel -->
+  <div id="claimsPanel" style="display:none;">
+    <div class="user-bar">
+      <div>
+        <div class="ub-name">👤 <span id="dispName"></span></div>
+        <div class="ub-role">Recipient</div>
+      </div>
+      <div style="display:flex;gap:.5rem;">
+        <button onclick="loadClaims()" class="btn btn-ghost btn-sm">↺ Refresh</button>
+        <button onclick="resetName()" class="btn btn-ghost btn-sm">Change Name</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <span class="num" id="sTotal">0</span><span class="lbl">Total Claims</span>
+      </div>
+      <div class="stat-box s-amber">
+        <span class="num" id="sPending">0</span><span class="lbl">Pending</span>
+      </div>
+      <div class="stat-box s-green">
+        <span class="num" id="sDone">0</span><span class="lbl">Picked Up</span>
+      </div>
+    </div>
+
+    <div id="claimsList"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-bottom" style="text-align:center;padding:1.5rem;">
+    <p>&copy; 2024 FoodShare — Food Waste Management System</p>
+  </div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+let recName = localStorage.getItem('recName') || '';
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (recName) showPanel();
+  else { document.getElementById('nameSection').style.display = 'block'; document.getElementById('claimsPanel').style.display = 'none'; }
+});
+
+function setName() {
+  const n = document.getElementById('ni').value.trim();
+  if (!n) { alert('Please enter your name'); return; }
+  recName = n; localStorage.setItem('recName', recName);
+  showPanel();
+}
+function resetName() { localStorage.removeItem('recName'); location.reload(); }
+
+function showPanel() {
+  document.getElementById('nameSection').style.display  = 'none';
+  document.getElementById('claimsPanel').style.display  = 'block';
+  document.getElementById('dispName').textContent = recName;
+  loadClaims();
+}
+
+async function loadClaims() {
+  const el = document.getElementById('claimsList');
+  el.innerHTML = spinner();
+  try {
+    const claims = await apiFetch(`${API.claims}/recipient/${encodeURIComponent(recName)}`);
+    document.getElementById('sTotal').textContent   = claims.length;
+    document.getElementById('sPending').textContent  = claims.filter(c=>c.status==='pending').length;
+    document.getElementById('sDone').textContent     = claims.filter(c=>c.status==='completed').length;
+
+    if (!claims.length) {
+      el.innerHTML = empty('📭','No claims yet','Browse available food and claim something!',
+        '<a href="/browse" class="btn btn-lime" style="margin-top:1rem;">Browse Food</a>');
+      return;
+    }
+
+    el.innerHTML = claims.map(c => {
+      const f = c.foodId;
+      return `
+        <div class="claim-card ${c.status==='completed'?'done':''}">
+          <div class="claim-card-header">
+            <div>
+              <div class="claim-card-title">${f?.title || '(Food removed by donor)'}</div>
+              <div class="claim-card-body" style="margin-top:.4rem;">
+                ${f ? `<span>📦 ${f.quantity}</span><span>📍 ${f.location}</span>` : ''}
+                ${f ? `<span>👤 Donor: ${f.donorName}${f.donorPhone ? ' · 📞 '+f.donorPhone : ''}</span>` : ''}
+                ${f ? `<span>⏱️ Expires: ${fmt(f.expiry)}</span>` : ''}
+                <span>🕐 Claimed: ${fmt(c.createdAt)}</span>
+              </div>
+            </div>
+            <span class="badge badge-${c.status}">
+              ${c.status === 'completed' ? '✅ Picked Up' : c.status === 'pending' ? '⏳ Pending' : c.status}
+            </span>
+          </div>
+          ${c.status === 'pending' ? `
+            <div class="claim-card-foot">
+              <button onclick="cancelClaim('${c._id}')" class="btn btn-danger btn-sm">✖ Cancel Claim</button>
+            </div>` : ''}
+        </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = `<div class="alert alert-error">❌ ${e.message}</div>`; }
+}
+
+async function cancelClaim(id) {
+  if (!confirm('Cancel this claim? The food will become available again.')) return;
+  try {
+    await apiFetch(`${API.claims}/${id}`, { method: 'DELETE' });
+    loadClaims();
+  } catch(e) { alert(e.message); }
+}
+</script>
+</body>
+</html>

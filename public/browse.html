@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Browse Food — FoodShare</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🌿 Food<span>Share</span></a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/browse" class="active">Browse Food</a></li>
+      <li><a href="/donor">Donate Food</a></li>
+      <li><a href="/myclaims">My Claims</a></li>
+      <li><a href="/history">History</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner container">
+    <h1>🔍 Browse Available Food</h1>
+    <p>Find and claim surplus food near you — free, no sign-up required</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:2rem; padding-bottom:4rem;">
+
+  <!-- Name entry (inline, small) -->
+  <div id="nameBar" style="display:none;">
+    <div class="card card-pad" style="max-width:520px;margin:0 auto 1.5rem;">
+      <p style="font-weight:600;margin-bottom:.8rem;">👤 Tell us your name to claim food:</p>
+      <div style="display:flex;gap:.8rem;">
+        <input type="text" id="recName"  class="form-control" placeholder="Your name"/>
+        <input type="tel"  id="recPhone" class="form-control" placeholder="Phone (optional)"/>
+        <button onclick="saveName()" class="btn btn-lime" style="white-space:nowrap;">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User bar -->
+  <div id="userBar" style="display:none;" class="user-bar">
+    <div>
+      <div class="ub-name">👤 <span id="dispName"></span></div>
+      <div class="ub-role">Recipient</div>
+    </div>
+    <button onclick="resetName()" class="btn btn-ghost btn-sm">Change</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <label>🔖 Category:</label>
+    <select id="catFilter" class="form-control" style="width:auto;" onchange="loadFood()">
+      <option value="">All Categories</option>
+      <option value="cooked">🍛 Cooked Food</option>
+      <option value="raw">🥕 Raw</option>
+      <option value="packaged">📦 Packaged</option>
+      <option value="bakery">🍞 Bakery</option>
+      <option value="fruits">🍎 Fruits & Veg</option>
+      <option value="dairy">🥛 Dairy</option>
+      <option value="other">🍴 Other</option>
+    </select>
+    <div class="search-box">
+      <input type="text" id="search" class="form-control" placeholder="🔍 Search by name, location, donor…" oninput="filterLocal()"/>
+    </div>
+    <button onclick="loadFood()" class="btn btn-ghost btn-sm">↺ Refresh</button>
+  </div>
+
+  <!-- Expiry alert -->
+  <div id="expiryBar" class="expiry-bar" style="display:none;">
+    ⚠️ <strong id="expiryCount">0</strong> item(s) expiring within 24 hours — claim them now!
+  </div>
+
+  <!-- Grid -->
+  <div id="foodGrid" class="food-grid">
+    <div class="loading"><div class="spinner"></div><p>Loading food listings…</p></div>
+  </div>
+</div>
+
+<!-- Claim Modal -->
+<div id="claimOverlay" class="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>🤝 Claim This Food</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p id="claimFoodName" style="font-family:'Fraunces',serif;font-size:1.15rem;font-weight:700;color:var(--forest);margin-bottom:1rem;"></p>
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="claimName" class="form-control" readonly style="background:var(--cream);"/>
+      </div>
+      <div class="form-group">
+        <label>Your Phone</label>
+        <input type="text" id="claimPhone" class="form-control" readonly style="background:var(--cream);"/>
+      </div>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.5rem;">After claiming, contact the donor directly to arrange pickup.</p>
+      <div id="claimAlert"></div>
+    </div>
+    <div class="modal-foot">
+      <button onclick="closeModal()" class="btn btn-ghost">Cancel</button>
+      <button onclick="doClaim()" class="btn btn-lime">✅ Confirm Claim</button>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-bottom" style="text-align:center;padding:1.5rem;">
+    <p>&copy; 2024 FoodShare — Food Waste Management System</p>
+  </div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+let recName  = localStorage.getItem('recName')  || '';
+let recPhone = localStorage.getItem('recPhone') || '';
+let allFoods = [];
+let claimFoodId = '';
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (recName) {
+    document.getElementById('userBar').style.display = 'flex';
+    document.getElementById('dispName').textContent  = recName;
+  } else {
+    document.getElementById('nameBar').style.display = 'block';
+  }
+  loadFood();
+});
+
+function saveName() {
+  const n = document.getElementById('recName').value.trim();
+  if (!n) { alert('Please enter your name'); return; }
+  recName  = n;
+  recPhone = document.getElementById('recPhone').value.trim();
+  localStorage.setItem('recName',  recName);
+  localStorage.setItem('recPhone', recPhone);
+  document.getElementById('nameBar').style.display = 'none';
+  document.getElementById('userBar').style.display = 'flex';
+  document.getElementById('dispName').textContent  = recName;
+}
+
+function resetName() {
+  localStorage.removeItem('recName'); localStorage.removeItem('recPhone');
+  location.reload();
+}
+
+async function loadFood() {
+  const grid = document.getElementById('foodGrid');
+  grid.innerHTML = spinner();
+  const cat  = document.getElementById('catFilter').value;
+  let url    = API.food + (cat ? `?category=${cat}` : '');
+  try {
+    allFoods = await apiFetch(url);
+    const soon = allFoods.filter(f => expiringSoon(f.expiry)).length;
+    document.getElementById('expiryCount').textContent = soon;
+    document.getElementById('expiryBar').style.display = soon > 0 ? 'flex' : 'none';
+    renderGrid(allFoods);
+  } catch(e) { grid.innerHTML = `<div class="alert alert-error">❌ ${e.message}</div>`; }
+}
+
+function filterLocal() {
+  const q = document.getElementById('search').value.toLowerCase();
+  renderGrid(q ? allFoods.filter(f =>
+    f.title.toLowerCase().includes(q) ||
+    f.location.toLowerCase().includes(q) ||
+    f.donorName.toLowerCase().includes(q)
+  ) : allFoods);
+}
+
+function renderGrid(foods) {
+  const grid = document.getElementById('foodGrid');
+  if (!foods.length) {
+    grid.innerHTML = empty('🍽️','No food available','Check back soon — donors add new listings regularly.', '<a href="/donor" class="btn btn-lime" style="margin-top:1rem;">Donate Food Instead</a>');
+    return;
+  }
+  grid.innerHTML = foods.map(f => `
+    <div class="food-card ${expiringSoon(f.expiry) ? 'expiring' : ''}">
+      <div class="food-card-top">
+        <span class="cat-badge">${f.category}</span>
+        ${expiringSoon(f.expiry) ? '<span class="expiry-warn-badge">⚠️ Expiring Soon</span>' : ''}
+      </div>
+      <div class="food-card-body">
+        <div class="food-card-title">${f.title}</div>
+        <div class="food-meta">
+          <div class="food-meta-row"><span class="mi">📦</span> ${f.quantity}</div>
+          <div class="food-meta-row"><span class="mi">📍</span> ${f.location}</div>
+          <div class="food-meta-row"><span class="mi">⏱️</span> Expires: ${fmt(f.expiry)}</div>
+          <div class="food-meta-row"><span class="mi">👤</span> ${f.donorName}${f.donorPhone ? ' · 📞 '+f.donorPhone : ''}</div>
+        </div>
+        ${f.description ? `<p class="food-desc">${f.description}</p>` : ''}
+      </div>
+      <div class="food-card-foot">
+        <button onclick="openClaim('${f._id}','${f.title.replace(/'/g,"\\'")}')" class="btn btn-lime" style="width:100%;">
+          🤝 Claim This Food
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+function openClaim(id, title) {
+  if (!recName) {
+    alert('Please enter your name first (at the top of the page)');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  claimFoodId = id;
+  document.getElementById('claimFoodName').textContent = title;
+  document.getElementById('claimName').value  = recName;
+  document.getElementById('claimPhone').value = recPhone;
+  document.getElementById('claimAlert').innerHTML = '';
+  document.getElementById('claimOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('claimOverlay').classList.remove('open');
+  claimFoodId = '';
+}
+
+async function doClaim() {
+  try {
+    const d = await apiFetch(API.claims, {
+      method: 'POST',
+      body: JSON.stringify({ foodId: claimFoodId, recipientName: recName, recipientPhone: recPhone })
+    });
+    document.getElementById('claimAlert').innerHTML = `<div class="alert alert-success">🎉 ${d.message}</div>`;
+    setTimeout(() => { closeModal(); loadFood(); }, 1800);
+  } catch(e) {
+    document.getElementById('claimAlert').innerHTML = `<div class="alert alert-error">❌ ${e.message}</div>`;
+  }
+}
+</script>
+</body>
+</html>

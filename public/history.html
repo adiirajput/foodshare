@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pickup History — FoodShare</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🌿 Food<span>Share</span></a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/browse">Browse Food</a></li>
+      <li><a href="/donor">Donate Food</a></li>
+      <li><a href="/myclaims">My Claims</a></li>
+      <li><a href="/history" class="active">History</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-header" style="background:linear-gradient(135deg,#14532d,#166534);">
+  <div class="page-header-inner container">
+    <h1>🏆 Pickup History</h1>
+    <p>All food you've successfully collected — your impact!</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:2rem;padding-bottom:4rem;">
+
+  <!-- Name entry -->
+  <div id="nameSection">
+    <div class="name-entry">
+      <div class="ne-icon">🏆</div>
+      <h2>Your Impact</h2>
+      <p>Enter your name to see all food you've picked up</p>
+      <div class="form-group">
+        <input type="text" id="ni" class="form-control" placeholder="Your name"/>
+      </div>
+      <button onclick="setName()" class="btn btn-lime" style="width:100%">View My History →</button>
+    </div>
+  </div>
+
+  <!-- History panel -->
+  <div id="histPanel" style="display:none;">
+    <div class="user-bar">
+      <div>
+        <div class="ub-name">🏆 History for: <span id="dispName"></span></div>
+        <div class="ub-role">Recipient</div>
+      </div>
+      <button onclick="resetName()" class="btn btn-ghost btn-sm">Change Name</button>
+    </div>
+
+    <!-- Impact stat -->
+    <div style="text-align:center;padding:2rem 1rem;background:var(--cream);border-radius:var(--r-lg);margin-bottom:1.5rem;border:1.5px solid var(--border);">
+      <div style="font-family:'Fraunces',serif;font-size:4rem;font-weight:900;color:var(--forest);line-height:1;" id="totalCount">0</div>
+      <div style="color:var(--muted);font-size:1rem;margin-top:.3rem;">meals rescued from waste 🌍</div>
+    </div>
+
+    <div id="histList"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-bottom" style="text-align:center;padding:1.5rem;">
+    <p>&copy; 2024 FoodShare — Food Waste Management System</p>
+  </div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+let recName = localStorage.getItem('recName') || '';
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (recName) showPanel();
+});
+
+function setName() {
+  const n = document.getElementById('ni').value.trim();
+  if (!n) { alert('Enter your name'); return; }
+  recName = n; localStorage.setItem('recName', recName);
+  showPanel();
+}
+function resetName() { localStorage.removeItem('recName'); location.reload(); }
+
+function showPanel() {
+  document.getElementById('nameSection').style.display = 'none';
+  document.getElementById('histPanel').style.display   = 'block';
+  document.getElementById('dispName').textContent = recName;
+  load();
+}
+
+async function load() {
+  const el = document.getElementById('histList');
+  el.innerHTML = spinner();
+  try {
+    // Get all claims, filter completed
+    const claims = await apiFetch(`${API.claims}/recipient/${encodeURIComponent(recName)}`);
+    const done   = claims.filter(c => c.status === 'completed');
+    document.getElementById('totalCount').textContent = done.length;
+
+    if (!done.length) {
+      el.innerHTML = empty('📦','No pickups yet',
+        'When a donor marks your claim as completed, it will appear here.',
+        '<a href="/browse" class="btn btn-lime" style="margin-top:1rem;">Find Food to Claim</a>');
+      return;
+    }
+
+    el.innerHTML = `
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:var(--r-lg);padding:1.5rem;text-align:center;margin-bottom:1.5rem;">
+        <p style="font-size:1.1rem;font-weight:600;color:#14532d;">🌍 Thank you for reducing food waste!</p>
+        <p style="font-size:.88rem;color:#166534;margin-top:.3rem;">Every item picked up is a meal saved from the bin.</p>
+      </div>
+      ${done.map(c => {
+        const f = c.foodId;
+        return `
+          <div class="claim-card done">
+            <div class="claim-card-header">
+              <div>
+                <div class="claim-card-title">✅ ${f?.title || 'Food (removed)'}</div>
+                <div class="claim-card-body" style="margin-top:.4rem;">
+                  ${f ? `<span>📦 ${f.quantity}</span><span>📍 ${f.location}</span>` : ''}
+                  ${f ? `<span>👤 Donor: ${f.donorName}</span>` : ''}
+                  <span>🗓️ Picked up: ${fmt(c.updatedAt)}</span>
+                </div>
+              </div>
+              <span class="badge badge-completed">✅ Completed</span>
+            </div>
+          </div>`;
+      }).join('')}`;
+  } catch(e) { el.innerHTML = `<div class="alert alert-error">❌ ${e.message}</div>`; }
+}
+</script>
+</body>
+</html>

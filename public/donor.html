@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Donor Panel — FoodShare</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🌿 Food<span>Share</span></a>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/browse">Browse Food</a></li>
+      <li><a href="/donor" class="active">Donate Food</a></li>
+      <li><a href="/myclaims">My Claims</a></li>
+      <li><a href="/history">History</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner container">
+    <h1>🍱 Donor Panel</h1>
+    <p>List surplus food and manage your donations</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:2rem; padding-bottom:4rem;">
+
+  <!-- Name Entry -->
+  <div id="nameSection">
+    <div class="name-entry">
+      <div class="ne-icon">🍽️</div>
+      <h2>Who is donating?</h2>
+      <p>Enter your name to manage your food listings</p>
+      <div class="form-group">
+        <input type="text" id="nameInput" class="form-control" placeholder="Your name or organization" />
+      </div>
+      <div class="form-group">
+        <input type="tel" id="phoneInput" class="form-control" placeholder="Phone number (optional)" />
+      </div>
+      <button onclick="setDonor()" class="btn btn-lime" style="width:100%">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Donor Panel (shown after name) -->
+  <div id="donorPanel" style="display:none;">
+
+    <div class="user-bar">
+      <div>
+        <div class="ub-name">👤 <span id="dispName"></span></div>
+        <div class="ub-role">Donor</div>
+      </div>
+      <button onclick="resetDonor()" class="btn btn-ghost btn-sm">Change Name</button>
+    </div>
+
+    <div class="donor-layout">
+
+      <!-- LEFT: Form -->
+      <div>
+        <div class="card card-pad">
+          <div class="card-title"><span class="icon">➕</span><span id="formTitle">Add Food Listing</span></div>
+          <input type="hidden" id="editId"/>
+          <div id="formAlert"></div>
+
+          <div class="form-group">
+            <label>Food Title <span class="req">*</span></label>
+            <input type="text" id="fTitle" class="form-control" placeholder="e.g. Cooked Dal Rice, Bread Loaves"/>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Quantity <span class="req">*</span></label>
+              <input type="text" id="fQty" class="form-control" placeholder="e.g. 5 kg, 20 plates"/>
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="fCat" class="form-control">
+                <option value="cooked">🍛 Cooked Food</option>
+                <option value="raw">🥕 Raw Ingredients</option>
+                <option value="packaged">📦 Packaged Food</option>
+                <option value="bakery">🍞 Bakery Items</option>
+                <option value="fruits">🍎 Fruits & Vegetables</option>
+                <option value="dairy">🥛 Dairy Products</option>
+                <option value="other">🍴 Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Expiry Date & Time <span class="req">*</span></label>
+            <input type="datetime-local" id="fExpiry" class="form-control"/>
+            <span class="form-hint">Must be a future date and time</span>
+          </div>
+          <div class="form-group">
+            <label>Pickup Location <span class="req">*</span></label>
+            <input type="text" id="fLocation" class="form-control" placeholder="Full address for pickup"/>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="fDesc" class="form-control" placeholder="Allergens, storage tips, any other details…"></textarea>
+          </div>
+          <div style="display:flex;gap:.7rem;">
+            <button onclick="submitFood()" class="btn btn-lime" style="flex:1" id="submitBtn">➕ Add Listing</button>
+            <button onclick="cancelEdit()" class="btn btn-ghost" id="cancelBtn" style="display:none;">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Listings + Claims -->
+      <div>
+        <!-- My Listings -->
+        <div class="panel-section-head">
+          <h3>📋 My Food Listings</h3>
+          <button onclick="loadListings()" class="btn btn-ghost btn-sm">↺ Refresh</button>
+        </div>
+        <div id="listings"><div class="loading"><div class="spinner"></div></div></div>
+
+        <!-- Claims on my food -->
+        <div class="panel-section-head" style="margin-top:2rem;">
+          <h3>📩 Claims on My Food</h3>
+          <button onclick="loadClaims()" class="btn btn-ghost btn-sm">↺ Refresh</button>
+        </div>
+        <div id="donorClaims"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-bottom" style="text-align:center;padding:1.5rem;">
+    <p>&copy; 2024 FoodShare — Food Waste Management System</p>
+  </div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+let donorName  = localStorage.getItem('donorName')  || '';
+let donorPhone = localStorage.getItem('donorPhone') || '';
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Set min datetime
+  const dt = document.getElementById('fExpiry');
+  const n  = new Date(); n.setMinutes(n.getMinutes() - n.getTimezoneOffset());
+  dt.min   = n.toISOString().slice(0,16);
+
+  if (donorName) showPanel();
+});
+
+function setDonor() {
+  const n = document.getElementById('nameInput').value.trim();
+  if (!n) { alert('Please enter your name'); return; }
+  donorName  = n;
+  donorPhone = document.getElementById('phoneInput').value.trim();
+  localStorage.setItem('donorName',  donorName);
+  localStorage.setItem('donorPhone', donorPhone);
+  showPanel();
+}
+
+function showPanel() {
+  document.getElementById('nameSection').style.display = 'none';
+  document.getElementById('donorPanel').style.display  = 'block';
+  document.getElementById('dispName').textContent = donorName;
+  loadListings();
+  loadClaims();
+}
+
+function resetDonor() {
+  localStorage.removeItem('donorName');
+  localStorage.removeItem('donorPhone');
+  location.reload();
+}
+
+/* ── Submit food ────────────────────────────── */
+async function submitFood() {
+  const editId = document.getElementById('editId').value;
+  const body   = {
+    title:       document.getElementById('fTitle').value.trim(),
+    quantity:    document.getElementById('fQty').value.trim(),
+    category:    document.getElementById('fCat').value,
+    expiry:      document.getElementById('fExpiry').value,
+    location:    document.getElementById('fLocation').value.trim(),
+    description: document.getElementById('fDesc').value.trim(),
+    donorName, donorPhone
+  };
+  try {
+    const url = editId ? `${API.food}/${editId}` : API.food;
+    const m   = editId ? 'PUT' : 'POST';
+    const d   = await apiFetch(url, { method: m, body: JSON.stringify(body) });
+    showAlert('formAlert', d.message, 'success');
+    cancelEdit(); loadListings();
+  } catch(e) { showAlert('formAlert', e.message, 'error'); }
+}
+
+function cancelEdit() {
+  document.getElementById('editId').value   = '';
+  document.getElementById('fTitle').value   = '';
+  document.getElementById('fQty').value     = '';
+  document.getElementById('fDesc').value    = '';
+  document.getElementById('fLocation').value= '';
+  document.getElementById('fExpiry').value  = '';
+  document.getElementById('formTitle').textContent = 'Add Food Listing';
+  document.getElementById('submitBtn').textContent = '➕ Add Listing';
+  document.getElementById('cancelBtn').style.display = 'none';
+}
+
+/* ── Load my listings ───────────────────────── */
+async function loadListings() {
+  const el = document.getElementById('listings');
+  el.innerHTML = spinner();
+  try {
+    const foods = await apiFetch(`${API.food}/by-donor/${encodeURIComponent(donorName)}`);
+    if (!foods.length) {
+      el.innerHTML = empty('📭','No listings yet','Add your first food listing using the form.'); return;
+    }
+    el.innerHTML = foods.map(f => `
+      <div class="listing-card">
+        <div class="listing-info">
+          <h4>${f.title}</h4>
+          <div class="meta">
+            <span>📦 ${f.quantity}</span>
+            <span>📍 ${f.location}</span>
+            <span class="${expiringSoon(f.expiry)?'expiry-warn-badge':''}">⏱ ${fmt(f.expiry)}</span>
+            <span class="badge badge-${f.status}">${f.status}</span>
+          </div>
+        </div>
+        <div class="listing-actions">
+          <button onclick="editFood('${f._id}')" class="btn btn-ghost btn-sm">✏️ Edit</button>
+          <button onclick="delFood('${f._id}')"  class="btn btn-danger btn-sm">🗑️</button>
+        </div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = `<div class="alert alert-error">❌ ${e.message}</div>`; }
+}
+
+/* ── Edit food ──────────────────────────────── */
+async function editFood(id) {
+  const f = await apiFetch(`${API.food}/${id}`);
+  document.getElementById('editId').value    = f._id;
+  document.getElementById('fTitle').value    = f.title;
+  document.getElementById('fQty').value      = f.quantity;
+  document.getElementById('fCat').value      = f.category;
+  document.getElementById('fExpiry').value   = new Date(f.expiry).toISOString().slice(0,16);
+  document.getElementById('fLocation').value = f.location;
+  document.getElementById('fDesc').value     = f.description;
+  document.getElementById('formTitle').textContent = 'Edit Listing';
+  document.getElementById('submitBtn').textContent = '💾 Save Changes';
+  document.getElementById('cancelBtn').style.display = 'inline-flex';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── Delete food ────────────────────────────── */
+async function delFood(id) {
+  if (!confirm('Delete this listing? All claims will also be removed.')) return;
+  try {
+    const d = await apiFetch(`${API.food}/${id}`, { method: 'DELETE' });
+    showAlert('formAlert', d.message, 'success');
+    loadListings(); loadClaims();
+  } catch(e) { alert(e.message); }
+}
+
+/* ── Load claims on my food ─────────────────── */
+async function loadClaims() {
+  const el = document.getElementById('donorClaims');
+  el.innerHTML = spinner();
+  try {
+    const claims = await apiFetch(`${API.claims}/donor/${encodeURIComponent(donorName)}`);
+    if (!claims.length) {
+      el.innerHTML = empty('📪','No claims yet','Recipients will appear here when they claim your food.'); return;
+    }
+    el.innerHTML = claims.map(c => {
+      const food = c.foodId;
+      return `
+        <div class="claim-card ${c.status==='completed'?'done':''}">
+          <div class="claim-card-header">
+            <div>
+              <div class="claim-card-title">${food?.title || 'Deleted food'}</div>
+              <div class="claim-card-body">
+                <span>👤 ${c.recipientName}</span>
+                ${c.recipientPhone ? `<span>📞 ${c.recipientPhone}</span>` : ''}
+                <span>🕐 ${fmt(c.createdAt)}</span>
+              </div>
+            </div>
+            <span class="badge badge-${c.status}">${c.status}</span>
+          </div>
+          ${c.status==='pending' ? `
+            <div class="claim-card-foot">
+              <button onclick="markDone('${c._id}')" class="btn btn-lime btn-sm">✅ Mark Picked Up</button>
+            </div>` : `<div class="claim-card-foot"><span style="color:#16a34a;font-size:.85rem;font-weight:600;">✅ Pickup Completed</span></div>`}
+        </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = `<div class="alert alert-error">❌ ${e.message}</div>`; }
+}
+
+async function markDone(cid) {
+  try {
+    const d = await apiFetch(`${API.claims}/${cid}/complete`, { method: 'PUT' });
+    showAlert('formAlert', d.message, 'success');
+    loadClaims(); loadListings();
+  } catch(e) { alert(e.message); }
+}
+</script>
+</body>
+</html>
