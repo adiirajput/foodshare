@@ -5,10 +5,10 @@ const User    = require('../models/User');
 // SIGNUP
 router.post('/signup', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+const { name, email, password, role, phone } = req.body;
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ error: 'Email already registered' });
-    const user = await User.create({ name, email, password, role });
+    const user = await User.create({ name, email, password, role, phone });
     req.session.user = { id: user._id, name: user.name, role: user.role, email: user.email };
     res.json({ success: true, user: req.session.user });
   } catch (err) {
