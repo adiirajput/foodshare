@@ -601,7 +601,22 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   .stats-row { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
   .footer-inner { grid-template-columns: 1fr; }
-  .nav-links a { padding: .45rem .55rem; font-size: .8rem; }
   .listing-card { flex-direction: column; align-items: flex-start; }
   .listing-actions { width: 100%; justify-content: flex-end; }
+
+  /* Navbar fix */
+  .nav-inner { flex-wrap: wrap; height: auto; padding: .6rem 0; gap: .4rem; }
+  .nav-logo { font-size: 1.2rem; }
+  .nav-links { flex-wrap: wrap; gap: .1rem; justify-content: center; width: 100%; }
+  .nav-links a { padding: .35rem .5rem; font-size: .75rem; }
+  .nav-cta { padding: .35rem .7rem !important; font-size: .75rem !important; }
 }
+
+@media (max-width: 480px) {
+  .hero { padding: 2.5rem 1rem 2rem; }
+  .hero h1 { font-size: 2rem; }
+  .hero-btns { flex-direction: column; }
+  .hero-btns .btn { width: 100%; justify-content: center; }
+  .navbar { padding: 0 1rem; }
+}
+
