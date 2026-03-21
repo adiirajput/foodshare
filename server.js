@@ -5,8 +5,7 @@ const path     = require('path');
 
 const app  = express();
 const PORT = 3000;
-const MONGO_URI = 'mongodb://localhost:27017/foodshare_db';
-
+const MONGO_URI = 'mongodb+srv://foodshare_user2:foodshare123@cluster0.8bpndpa.mongodb.net/foodshare_db?appName=Cluster0';
 // ── Middleware ──────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
