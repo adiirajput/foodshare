@@ -159,7 +159,7 @@ async function loadFood() {
       <tbody>
         ${foods.map(f => `
           <tr style="border-top:1px solid var(--border);">
-            <td style="padding:.7rem 1rem;">${f.name}</td>
+            <td style="padding:.7rem 1rem;">${f.title}</td>
             <td style="padding:.7rem 1rem;">${f.quantity} ${f.unit || ''}</td>
             <td style="padding:.7rem 1rem;"><span class="badge badge-${f.status}">${f.status}</span></td>
             <td style="padding:.7rem 1rem;">${new Date(f.expiryTime).toLocaleString()}</td>
