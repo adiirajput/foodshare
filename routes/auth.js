@@ -61,20 +61,5 @@ router.delete('/users/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Temporary admin setup route - ek baar use karo
-router.get('/setup-admin', async (req, res) => {
-  try {
-    const exists = await User.findOne({ email: 'admin@foodshare.com' });
-    if (exists) return res.json({ message: 'Admin already exists!' });
-    await User.create({
-      name: 'Admin',
-      email: 'admin@foodshare.com',
-      password: 'admin123',
-      role: 'admin'
-    });
-    res.json({ message: 'Admin created successfully!' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+
 module.exports = router;
