@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard — FoodShare</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🌿 Food<span>Share</span></a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/browse">Browse Food</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <h1>⚙️ Admin Dashboard</h1>
+    <p>Manage users, food listings, and claims</p>
+  </div>
+</div>
+
+<div class="section">
+  <div class="container">
+
+    <!-- Stats -->
+    <div class="stats-row" style="grid-template-columns: repeat(4,1fr); margin-bottom:2rem;">
+      <div class="stat-box s-green">
+        <span class="num" id="total-users">-</span>
+        <span class="lbl">Total Users</span>
+      </div>
+      <div class="stat-box">
+        <span class="num" id="total-food">-</span>
+        <span class="lbl">Food Listings</span>
+      </div>
+      <div class="stat-box s-amber">
+        <span class="num" id="total-claims">-</span>
+        <span class="lbl">Total Claims</span>
+      </div>
+      <div class="stat-box s-red">
+        <span class="num" id="total-expired">-</span>
+        <span class="lbl">Expired Items</span>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card" style="margin-bottom:2rem;">
+      <div class="card-pad">
+        <div class="card-title">👥 All Users</div>
+        <div id="users-list">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Food Listings -->
+    <div class="card" style="margin-bottom:2rem;">
+      <div class="card-pad">
+        <div class="card-title">🍱 All Food Listings</div>
+        <div id="food-list">
+          <div class="loading"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Check admin access
+async function checkAdmin() {
+  const res  = await fetch('/api/auth/me');
+  const data = await res.json();
+  if (!data.user || data.user.role !== 'admin') {
+    alert('Access denied! Admins only.');
+    window.location.href = '/login';
+  }
+}
+
+async function loadStats() {
+  const [foodRes, claimsRes] = await Promise.all([
+    fetch('/api/food'),
+    fetch('/api/claims')
+  ]);
+  const foods  = await foodRes.json();
+  const claims = await claimsRes.json();
+
+  document.getElementById('total-food').textContent    = foods.length || 0;
+  document.getElementById('total-claims').textContent  = claims.length || 0;
+  document.getElementById('total-expired').textContent = foods.filter(f => f.status === 'expired').length || 0;
+}
+
+async function loadUsers() {
+  const res   = await fetch('/api/auth/users');
+  const data  = await res.json();
+  const users = data.users || [];
+
+  document.getElementById('total-users').textContent = users.length;
+
+  if (!users.length) {
+    document.getElementById('users-list').innerHTML = '<div class="empty"><span class="ei">👥</span><h3>No users yet</h3></div>';
+    return;
+  }
+
+  document.getElementById('users-list').innerHTML = `
+    <table style="width:100%; border-collapse:collapse; font-size:.88rem;">
+      <thead>
+        <tr style="background:var(--cream);">
+          <th style="padding:.7rem 1rem; text-align:left;">Name</th>
+          <th style="padding:.7rem 1rem; text-align:left;">Email</th>
+          <th style="padding:.7rem 1rem; text-align:left;">Role</th>
+          <th style="padding:.7rem 1rem; text-align:left;">Joined</th>
+          <th style="padding:.7rem 1rem; text-align:left;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${users.map(u => `
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:.7rem 1rem;">${u.name}</td>
+            <td style="padding:.7rem 1rem;">${u.email}</td>
+            <td style="padding:.7rem 1rem;"><span class="badge badge-${u.role === 'admin' ? 'claimed' : u.role === 'donor' ? 'available' : 'pending'}">${u.role}</span></td>
+            <td style="padding:.7rem 1rem;">${new Date(u.createdAt).toLocaleDateString()}</td>
+            <td style="padding:.7rem 1rem;">
+              ${u.role !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u._id}')">Delete</button>` : '<span style="color:var(--muted)">—</span>'}
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+async function loadFood() {
+  const res   = await fetch('/api/food');
+  const foods = await res.json();
+
+  if (!foods.length) {
+    document.getElementById('food-list').innerHTML = '<div class="empty"><span class="ei">🍱</span><h3>No listings yet</h3></div>';
+    return;
+  }
+
+  document.getElementById('food-list').innerHTML = `
+    <table style="width:100%; border-collapse:collapse; font-size:.88rem;">
+      <thead>
+        <tr style="background:var(--cream);">
+          <th style="padding:.7rem 1rem; text-align:left;">Food</th>
+          <th style="padding:.7rem 1rem; text-align:left;">Quantity</th>
+          <th style="padding:.7rem 1rem; text-align:left;">Status</th>
+          <th style="padding:.7rem 1rem; text-align:left;">Expiry</th>
+          <th style="padding:.7rem 1rem; text-align:left;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${foods.map(f => `
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:.7rem 1rem;">${f.name}</td>
+            <td style="padding:.7rem 1rem;">${f.quantity} ${f.unit || ''}</td>
+            <td style="padding:.7rem 1rem;"><span class="badge badge-${f.status}">${f.status}</span></td>
+            <td style="padding:.7rem 1rem;">${new Date(f.expiryTime).toLocaleString()}</td>
+            <td style="padding:.7rem 1rem;">
+              <button class="btn btn-danger btn-sm" onclick="deleteFood('${f._id}')">Delete</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+async function deleteUser(id) {
+  if (!confirm('Delete this user?')) return;
+  await fetch(`/api/auth/users/${id}`, { method: 'DELETE' });
+  loadUsers();
+}
+
+async function deleteFood(id) {
+  if (!confirm('Delete this food listing?')) return;
+  await fetch(`/api/food/${id}`, { method: 'DELETE' });
+  loadFood();
+  loadStats();
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login';
+}
+
+// Init
+checkAdmin();
+loadStats();
+loadUsers();
+loadFood();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up — FoodShare</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🌿 Food<span>Share</span></a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/browse">Browse Food</a>
+      <a href="/login">Login</a>
+    </div>
+  </div>
+</nav>
+
+<div style="min-height:80vh; display:flex; align-items:center; justify-content:center; padding:2rem;">
+  <div class="name-entry" style="width:100%;">
+    <div class="ne-icon">🌿</div>
+    <h2>Join FoodShare</h2>
+    <p>Create your account and start making a difference!</p>
+
+    <div id="alert-box"></div>
+
+    <div class="form-group" style="text-align:left;">
+      <label>Full Name <span class="req">*</span></label>
+      <input type="text" id="name" class="form-control" placeholder="Aditya Kumar"/>
+    </div>
+    <div class="form-group" style="text-align:left;">
+      <label>Email <span class="req">*</span></label>
+      <input type="email" id="email" class="form-control" placeholder="your@email.com"/>
+    </div>
+    <div class="form-group" style="text-align:left;">
+      <label>Password <span class="req">*</span></label>
+      <input type="password" id="password" class="form-control" placeholder="Min 6 characters"/>
+    </div>
+    <div class="form-group" style="text-align:left;">
+      <label>I want to <span class="req">*</span></label>
+      <select id="role" class="form-control">
+        <option value="recipient">🍽️ Find Food (Recipient)</option>
+        <option value="donor">🤝 Donate Food (Donor)</option>
+      </select>
+    </div>
+
+    <button class="btn btn-lime btn-lg" style="width:100%; justify-content:center; margin-top:.5rem;" onclick="signup()">
+      Create Account
+    </button>
+
+    <p style="margin-top:1.2rem; font-size:.88rem; color:var(--muted);">
+      Already have an account? <a href="/login" style="color:var(--sage); font-weight:600;">Login</a>
+    </p>
+  </div>
+</div>
+
+<script>
+async function signup() {
+  const name     = document.getElementById('name').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const role     = document.getElementById('role').value;
+  const alertBox = document.getElementById('alert-box');
+
+  if (!name || !email || !password) {
+    alertBox.innerHTML = '<div class="alert alert-error">❌ Please fill all fields!</div>';
+    return;
+  }
+  if (password.length < 6) {
+    alertBox.innerHTML = '<div class="alert alert-error">❌ Password must be at least 6 characters!</div>';
+    return;
+  }
+
+  try {
+    const res  = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, role })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      alertBox.innerHTML = '<div class="alert alert-success">✅ Account created! Redirecting...</div>';
+      setTimeout(() => {
+        if (data.user.role === 'donor') window.location.href = '/donor';
+        else window.location.href = '/browse';
+      }, 1000);
+    } else {
+      alertBox.innerHTML = `<div class="alert alert-error">❌ ${data.error}</div>`;
+    }
+  } catch (err) {
+    alertBox.innerHTML = '<div class="alert alert-error">❌ Something went wrong!</div>';
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') signup(); });
+</script>
+
+</body>
+</html>
