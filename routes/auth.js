@@ -9,7 +9,7 @@ const { name, email, password, role, phone } = req.body;
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ error: 'Email already registered' });
     const user = await User.create({ name, email, password, role, phone });
-    req.session.user = { id: user._id, name: user.name, role: user.role, email: user.email };
+    req.session.user = { id: user._id, name: user.name, role: user.role, email: user.email, phone: user.phone };
     res.json({ success: true, user: req.session.user });
   } catch (err) {
     res.status(500).json({ error: err.message });
