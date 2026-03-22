@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profile — FoodShare</title>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🌿 Food<span>Share</span></a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/browse">Browse Food</a>
+      <a href="/donor">Donate Food</a>
+      <a href="/profile" class="active">Profile</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner container">
+    <h1>👤 My Profile</h1>
+    <p>Manage your account details</p>
+  </div>
+</div>
+
+<div style="min-height:70vh; padding:2rem 1rem;">
+  <div class="name-entry" style="width:100%; max-width:520px;">
+
+    <div class="ne-icon" id="profileIcon">👤</div>
+    <h2 id="profileName">Loading...</h2>
+    <p id="profileRole" style="color:var(--sage); font-weight:600; text-transform:uppercase; font-size:.8rem; letter-spacing:1px;"></p>
+
+    <div id="alert-box"></div>
+
+    <div class="form-group" style="text-align:left; margin-top:1.5rem;">
+      <label>Full Name</label>
+      <input type="text" id="editName" class="form-control"/>
+    </div>
+    <div class="form-group" style="text-align:left;">
+      <label>Email</label>
+      <input type="email" id="editEmail" class="form-control" disabled style="background:var(--cream);"/>
+    </div>
+    <div class="form-group" style="text-align:left;">
+      <label>Phone Number</label>
+      <input type="tel" id="editPhone" class="form-control" placeholder="e.g. 9876543210"/>
+    </div>
+    <div class="form-group" style="text-align:left;">
+      <label>New Password <span style="color:var(--muted); font-weight:400;">(leave blank to keep same)</span></label>
+      <input type="password" id="editPassword" class="form-control" placeholder="Min 6 characters"/>
+    </div>
+
+    <button class="btn btn-lime btn-lg" style="width:100%; justify-content:center; margin-top:.5rem;" onclick="saveProfile()">
+      💾 Save Changes
+    </button>
+
+    <button class="btn btn-danger btn-lg" style="width:100%; justify-content:center; margin-top:.8rem;" onclick="logout()">
+      🚪 Logout
+    </button>
+
+  </div>
+</div>
+
+<script>
+async function loadProfile() {
+  const res  = await fetch('/api/auth/me');
+  const data = await res.json();
+  if (!data.user) { window.location.href = '/login'; return; }
+
+  const u = data.user;
+  document.getElementById('profileName').textContent = u.name;
+  document.getElementById('profileRole').textContent = u.role;
+  document.getElementById('profileIcon').textContent = u.role === 'donor' ? '🤝' : u.role === 'admin' ? '⚙️' : '🍽️';
+  document.getElementById('editName').value  = u.name;
+  document.getElementById('editEmail').value = u.email;
+  document.getElementById('editPhone').value = u.phone || '';
+}
+
+async function saveProfile() {
+  const name     = document.getElementById('editName').value.trim();
+  const phone    = document.getElementById('editPhone').value.trim();
+  const password = document.getElementById('editPassword').value;
+  const alertBox = document.getElementById('alert-box');
+
+  if (!name) {
+    alertBox.innerHTML = '<div class="alert alert-error">❌ Name cannot be empty!</div>';
+    return;
+  }
+
+  try {
+    const res  = await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone, password: password || undefined })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alertBox.innerHTML = '<div class="alert alert-success">✅ Profile updated!</div>';
+      document.getElementById('profileName').textContent = name;
+      setTimeout(() => { alertBox.innerHTML = ''; }, 3000);
+    } else {
+      alertBox.innerHTML = `<div class="alert alert-error">❌ ${data.error}</div>`;
+    }
+  } catch (err) {
+    alertBox.innerHTML = '<div class="alert alert-error">❌ Something went wrong!</div>';
+  }
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/login';
+}
+
+loadProfile();
+</script>
+
+</body>
+</html>

@@ -61,5 +61,22 @@ router.delete('/users/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// UPDATE profile
+router.put('/profile', async (req, res) => {
+  try {
+    if (!req.session.user) return res.status(401).json({ error: 'Not logged in' });
+    const { name, phone, password } = req.body;
+    const update = { name, phone };
+    if (password && password.length >= 6) {
+      const bcrypt = require('bcryptjs');
+      update.password = await bcrypt.hash(password, 12);
+    }
+    const user = await User.findByIdAndUpdate(req.session.user.id, update, { new: true });
+    req.session.user = { ...req.session.user, name: user.name, phone: user.phone };
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;

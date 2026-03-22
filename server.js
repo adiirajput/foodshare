@@ -42,6 +42,7 @@ app.get('/history',   requireLogin, (_, res) => res.sendFile(path.join(__dirname
 app.get('/login',     (_, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/signup',    (_, res) => res.sendFile(path.join(__dirname, 'public', 'signup.html')));
 app.get('/admin',     requireAdmin, (_, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/profile',   requireLogin, (_, res) => res.sendFile(path.join(__dirname, 'public', 'profile.html')));
 // ── MongoDB ─────────────────────────────────────────────
 mongoose.connect(MONGO_URI)
   .then(() => {
