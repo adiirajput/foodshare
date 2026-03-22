@@ -31,8 +31,8 @@
 <div class="container" style="padding-top:2rem; padding-bottom:4rem;">
 
   <!-- Name Entry -->
-  <div id="nameSection">
-    <div class="name-entry">
+<div id="nameSection" style="display:none;">
+      <div class="name-entry">
       <div class="ne-icon">🍽️</div>
       <h2>Who is donating?</h2>
       <p>Enter your name to manage your food listings</p>
@@ -138,27 +138,36 @@
 
 <script src="/js/app.js"></script>
 <script>
-let donorName  = localStorage.getItem('donorName')  || '';
-let donorPhone = localStorage.getItem('donorPhone') || '';
+let donorName  = '';
+let donorPhone = '';
 
-window.addEventListener('DOMContentLoaded', () => {
-  // Set min datetime
+window.addEventListener('DOMContentLoaded', async () => {
   const dt = document.getElementById('fExpiry');
   const n  = new Date(); n.setMinutes(n.getMinutes() - n.getTimezoneOffset());
   dt.min   = n.toISOString().slice(0,16);
 
-  if (donorName) showPanel();
+  // Auto-fill from logged in user
+  try {
+    const res  = await fetch('/api/auth/me');
+    const data = await res.json();
+    if (data.user) {
+      donorName  = data.user.name;
+      donorPhone = data.user.phone || '';
+      showPanel();
+    }
+  } catch(e) {
+    if (localStorage.getItem('donorName')) {
+      donorName  = localStorage.getItem('donorName');
+      donorPhone = localStorage.getItem('donorPhone') || '';
+      showPanel();
+    }
+  }
 });
 
 function setDonor() {
-  const n = document.getElementById('nameInput').value.trim();
-  if (!n) { alert('Please enter your name'); return; }
-  donorName  = n;
-  donorPhone = document.getElementById('phoneInput').value.trim();
-  localStorage.setItem('donorName',  donorName);
-  localStorage.setItem('donorPhone', donorPhone);
   showPanel();
 }
+
 
 function showPanel() {
   document.getElementById('nameSection').style.display = 'none';
