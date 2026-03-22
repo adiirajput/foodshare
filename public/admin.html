@@ -162,7 +162,7 @@ async function loadFood() {
             <td style="padding:.7rem 1rem;">${f.title}</td>
             <td style="padding:.7rem 1rem;">${f.quantity} ${f.unit || ''}</td>
             <td style="padding:.7rem 1rem;"><span class="badge badge-${f.status}">${f.status}</span></td>
-            <td style="padding:.7rem 1rem;">${new Date(f.expiryTime).toLocaleString()}</td>
+            <td style="padding:.7rem 1rem;">${new Date(f.expiry).toLocaleString()}</td>
             <td style="padding:.7rem 1rem;">
               <button class="btn btn-danger btn-sm" onclick="deleteFood('${f._id}')">Delete</button>
             </td>
