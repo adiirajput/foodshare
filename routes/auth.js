@@ -24,7 +24,7 @@ router.post('/login', async (req, res) => {
     if (!user) return res.status(400).json({ error: 'Email not found' });
     const match = await user.matchPassword(password);
     if (!match) return res.status(400).json({ error: 'Wrong password' });
-    req.session.user = { id: user._id, name: user.name, role: user.role, email: user.email };
+req.session.user = { id: user._id, name: user.name, role: user.role, email: user.email, phone: user.phone };
     res.json({ success: true, user: req.session.user });
   } catch (err) {
     res.status(500).json({ error: err.message });
