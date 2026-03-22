@@ -17,6 +17,7 @@
       <li><a href="/donor" class="active">Donate Food</a></li>
       <li><a href="/myclaims">My Claims</a></li>
       <li><a href="/history">History</a></li>
+      <li><a href="/profile">👤 Profile</a></li>
     </ul>
   </div>
 </nav>
@@ -146,7 +147,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   const n  = new Date(); n.setMinutes(n.getMinutes() - n.getTimezoneOffset());
   dt.min   = n.toISOString().slice(0,16);
 
-  // Auto-fill from logged in user
   try {
     const res  = await fetch('/api/auth/me');
     const data = await res.json();
@@ -156,11 +156,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       showPanel();
     }
   } catch(e) {
-    if (localStorage.getItem('donorName')) {
-      donorName  = localStorage.getItem('donorName');
-      donorPhone = localStorage.getItem('donorPhone') || '';
-      showPanel();
-    }
+    showPanel();
   }
 });
 
