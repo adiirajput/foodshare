@@ -116,19 +116,32 @@
 
 <script src="/js/app.js"></script>
 <script>
-let recName  = localStorage.getItem('recName')  || '';
-let recPhone = localStorage.getItem('recPhone') || '';
+let recName  = '';
+let recPhone = '';
+
+// Auto-fill from logged in user
+async function loadUser() {
+  try {
+    const res  = await fetch('/api/auth/me');
+    const data = await res.json();
+    if (data.user) {
+      recName  = data.user.name;
+      recPhone = data.user.phone || '';
+      document.getElementById('userBar').style.display = 'flex';
+      document.getElementById('dispName').textContent  = recName;
+      document.getElementById('nameBar').style.display = 'none';
+    } else {
+      document.getElementById('nameBar').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('nameBar').style.display = 'block';
+  }
+}
 let allFoods = [];
 let claimFoodId = '';
 
 window.addEventListener('DOMContentLoaded', () => {
-  if (recName) {
-    document.getElementById('userBar').style.display = 'flex';
-    document.getElementById('dispName').textContent  = recName;
-  } else {
-    document.getElementById('nameBar').style.display = 'block';
-  }
-  loadFood();
+  loadUser().then(() => loadFood());
 });
 
 function saveName() {
